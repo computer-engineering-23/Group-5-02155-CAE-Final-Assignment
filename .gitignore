@@ -1,0 +1,23 @@
+build/**
+.cache/**
+compile_commands.json
+.env
+
+# Additional common C ignores
+*.o
+*.d
+*.elf
+*.lst
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Temporary files
+*.swp
+*~
+
+# Debugging and profiling files
+*.log
+gmon.out
+
