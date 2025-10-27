@@ -32,7 +32,7 @@ EXECUTABLE  = ${BUILD_DIR}/${PROG}
 # ====================
 # Toolchain
 # ====================
-CC          = gcc
+CC          = clang
 SIZE        = size
 
 # ====================
