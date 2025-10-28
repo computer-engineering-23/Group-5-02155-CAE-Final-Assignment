@@ -83,8 +83,8 @@ int main() {
                case (0x00<<3)|0x06: registers[instruction.rd] = registers[instruction.r_type.rs1] | registers[instruction.r_type.rs2]; break; // OR
                case (0x00<<3)|0x07: registers[instruction.rd] = registers[instruction.r_type.rs1] & registers[instruction.r_type.rs2]; break; // AND
                case (0x00<<3)|0x01: registers[instruction.rd] = registers[instruction.r_type.rs1] << (registers[instruction.r_type.rs2] & 0x1F); break; // SLL
-               case (0x00<<3)|0x05: registers[instruction.rd] = registers[instruction.r_type.rs1] >> registers[instruction.r_type.rs2]; break; // SRL
-               case (0x20<<3)|0x05: registers[instruction.rd] = (int32_t)registers[instruction.r_type.rs1] >> registers[instruction.r_type.rs2]; break; // SRA
+               case (0x00<<3)|0x05: registers[instruction.rd] = registers[instruction.r_type.rs1] >> (registers[instruction.r_type.rs2] & 0x1F); break; // SRL
+               case (0x20<<3)|0x05: registers[instruction.rd] = (int32_t)registers[instruction.r_type.rs1] >> (registers[instruction.r_type.rs2] & 0x1F); break; // SRA
                case (0x00<<3)|0x02: registers[instruction.rd] = ((int32_t)registers[instruction.r_type.rs1] < (int32_t)registers[instruction.r_type.rs2]) ? 1 : 0; break; // SLT
                case (0x00<<3)|0x03: registers[instruction.rd] = (registers[instruction.r_type.rs1] < registers[instruction.r_type.rs2]) ? 1 : 0; break; // SLTU
             }
