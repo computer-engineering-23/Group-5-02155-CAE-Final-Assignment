@@ -2,14 +2,41 @@
 #include <stdio.h>
 
 typedef union {
-   int16_t immediatei;
-   uint16_t immediateu;
-   uint8_t  rs1;
-   uint8_t  rs2;
-   uint8_t  funct3;
-   uint8_t  rd;
-   uint8_t  opcode;
-   uint8_t  funct7;
+   uint32_t raw; // Raw 32-bit instruction
+
+   // These fields are universal
+   struct {
+      uint32_t opcode : 7;
+      uint32_t rd : 5;
+      uint32_t __unused : 20;
+   };
+
+   struct {
+      uint32_t opcode : 7;
+      uint32_t rd : 5;
+      uint32_t funct3 : 3;
+      uint32_t rs1 : 5;
+      uint32_t rs2 : 5;
+      uint32_t funct7 : 7;
+   } r_type;
+
+   struct {
+      uint32_t opcode : 7;
+      uint32_t rd : 5;
+      uint32_t funct3 : 3;
+      uint32_t rs1 : 5;
+      uint32_t imm : 12;
+   } i_type;
+
+   struct {
+      uint32_t opcode : 7;
+      uint32_t imm_low : 5;
+      uint32_t funct3 : 3;
+      uint32_t rs1 : 5;
+      uint32_t rs2 : 5;
+      uint32_t imm_high : 7;
+   } s_type;
+
 } rv32_instruction_t;
 
 typedef enum RV32OPCODES {
@@ -42,53 +69,49 @@ static inline int32_t sign_extend(uint32_t val, int bits) {
 int main() {
 
    for (;;) {
-      uint32_t instruction_raw = program[pc >> 2];
-      rv32i_instruction_t instruction = {
-         .immediatei = sign_extend(get_bits(instruction_raw, 31, 20), 12),
-         .immediateu = get_bits(instruction_raw, 31, 20),
-         .rs1 = (instruction_raw >> 15) & 0x01F,
-         .rs2 = get_bits(instruction_raw, 24, 20),
-         .rd = (instruction_raw >> 7) & 0x01F,
-         .opcode = instruction_raw & 0x7F,
-         .funct3 = get_bits(instruction_raw, 14, 12),
-         .funct7 = get_bits(instruction_raw, 31, 25),
-      };
+      rv32_instruction_t instruction;
+      instruction.raw = program[pc >> 2];
 
-      printf("0x%02X\n", instruction.raw);
+      printf("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X\n", pc, instruction.raw, instruction.opcode);
       switch (instruction.opcode) {
          case 0x33: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
-            switch ((instruction.funct7 << 3) | instruction.funct3) {
-               case (0x00<<3)|0x00: registers[instruction.rd] = registers[instruction.rs1] + registers[instruction.rs2]; break; // ADD
-               case (0x20<<3)|0x00: registers[instruction.rd] = registers[instruction.rs1] - registers[instruction.rs2]; break; // SUB
-               case (0x00<<3)|0x04: registers[instruction.rd] = registers[instruction.rs1] ^ registers[instruction.rs2]; break; // XOR
-               case (0x00<<3)|0x06: registers[instruction.rd] = registers[instruction.rs1] | registers[instruction.rs2]; break; // OR
-               case (0x00<<3)|0x07: registers[instruction.rd] = registers[instruction.rs1] & registers[instruction.rs2]; break; // AND
-               case (0x00<<3)|0x01: registers[instruction.rd] = registers[instruction.rs1] << registers[instruction.rs2]; break; // SLL
-               case (0x00<<3)|0x05: registers[instruction.rd] = registers[instruction.rs1] >> registers[instruction.rs2]; break; // SLR
-               case (0x20<<3)|0x05: registers[instruction.rd] = (int32_t)registers[instruction.rs1] << registers[instruction.rs2]; break; // SRA
-               case (0x00<<3)|0x02: registers[instruction.rd] = (registers[instruction.rs1] < registers[instruction.rs2]) ? 1 : 0; break; // SLT
-               case (0x00<<3)|0x03: registers[instruction.rd] = (registers[instruction.rs1] < registers[instruction.rs2]) ? 1 : 0; break; // SLTU
+            uint16_t funct = (instruction.r_type.funct7 << 3) | instruction.r_type.funct3;
+            switch (funct) {
+               case (0x00<<3)|0x00: registers[instruction.rd] = registers[instruction.r_type.rs1] + registers[instruction.r_type.rs2]; break; // ADD
+               case (0x20<<3)|0x00: registers[instruction.rd] = registers[instruction.r_type.rs1] - registers[instruction.r_type.rs2]; break; // SUB
+               case (0x00<<3)|0x04: registers[instruction.rd] = registers[instruction.r_type.rs1] ^ registers[instruction.r_type.rs2]; break; // XOR
+               case (0x00<<3)|0x06: registers[instruction.rd] = registers[instruction.r_type.rs1] | registers[instruction.r_type.rs2]; break; // OR
+               case (0x00<<3)|0x07: registers[instruction.rd] = registers[instruction.r_type.rs1] & registers[instruction.r_type.rs2]; break; // AND
+               case (0x00<<3)|0x01: registers[instruction.rd] = registers[instruction.r_type.rs1] << (registers[instruction.r_type.rs2] & 0x1F); break; // SLL
+               case (0x00<<3)|0x05: registers[instruction.rd] = registers[instruction.r_type.rs1] >> registers[instruction.r_type.rs2]; break; // SRL
+               case (0x20<<3)|0x05: registers[instruction.rd] = (int32_t)registers[instruction.r_type.rs1] >> registers[instruction.r_type.rs2]; break; // SRA
+               case (0x00<<3)|0x02: registers[instruction.rd] = ((int32_t)registers[instruction.r_type.rs1] < (int32_t)registers[instruction.r_type.rs2]) ? 1 : 0; break; // SLT
+               case (0x00<<3)|0x03: registers[instruction.rd] = (registers[instruction.r_type.rs1] < registers[instruction.r_type.rs2]) ? 1 : 0; break; // SLTU
             }
 
             break;
 
          case 0x13: // ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
-            switch (instruction.funct3) {
-               case 0x00: registers[instruction.rd] = registers[instruction.rs1] + instruction.immediatei; break; // ADDI
-               case 0x04: registers[instruction.rd] = registers[instruction.rs1] ^ instruction.immediatei; break; // XORI
-               case 0x06: registers[instruction.rd] = registers[instruction.rs1] | instruction.immediatei; break; // ORI
-               case 0x07: registers[instruction.rd] = registers[instruction.rs1] & instruction.immediatei; break; // ANDI
-               case 0x01: registers[instruction.rd] = registers[instruction.rs1] << (instruction.immediatei & 0b11111); break; // SSLI
+            int32_t imm = sign_extend(instruction.i_type.imm, 12);
+            switch (instruction.i_type.funct3) {
+               case 0x00: registers[instruction.rd] = registers[instruction.i_type.rs1] + imm; break; // ADDI
+               case 0x04: registers[instruction.rd] = registers[instruction.i_type.rs1] ^ imm; break; // XORI
+               case 0x06: registers[instruction.rd] = registers[instruction.i_type.rs1] | imm; break; // ORI
+               case 0x07: registers[instruction.rd] = registers[instruction.i_type.rs1] & imm; break; // ANDI
+               case 0x01: registers[instruction.rd] = registers[instruction.i_type.rs1] << (imm & 0x1F); break; // SSLI
                case 0x05: {
-                  if (get_bits(instruction.immediatei, 11, 5) == 0x00) { // SRLI
-                     registers[instruction.rd] = registers[instruction.rs1] >> get_bits(instruction.immediatei, 0, 4);
+                  uint8_t shift_amount = instruction.i_type.imm & 0x1F;  // How many positions to shift
+                  uint8_t mode = get_bits(instruction.i_type.imm, 11, 5);
+                  if (mode == 0x00) { // SRLI
+                     registers[instruction.rd] = registers[instruction.i_type.rs1] >> shift_amount;
                   }
                   else { // SRLAI
-                     registers[instruction.rd] = (int32_t)registers[instruction.rs1] >> get_bits(instruction.immediatei, 0, 4);
+                     registers[instruction.rd] = (int32_t)registers[instruction.i_type.rs1] >> shift_amount;
                   }
+                  break;
                }
-               case 0x02: registers[instruction.rd] = (registers[instruction.rs1] < instruction.immediatei) ? 1 : 0; break; // SLTI
-               case 0x03: registers[instruction.rd] = ((uint32_t)registers[instruction.rs1] < instruction.immediatei) ? 1 : 0; break; // SLTIU
+               case 0x02: registers[instruction.rd] = ((int32_t)registers[instruction.i_type.rs1] < imm) ? 1 : 0; break; // SLTI
+               case 0x03: registers[instruction.rd] = (registers[instruction.i_type.rs1] < (uint32_t)imm) ? 1 : 0; break; // SLTIU
             }
             break;
 
@@ -97,9 +120,10 @@ int main() {
             break;
       }
 
+      registers[0] = 0;
 
       for (int i = 0; i < num_registers; i++) {
-         printf("0x%02X ", registers[i]);
+         printf("0x%08X ", registers[i]);
       }
       printf("\n");
 
@@ -109,3 +133,4 @@ int main() {
       }
    }
 }
+
