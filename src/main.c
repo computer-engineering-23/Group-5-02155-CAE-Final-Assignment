@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef union {
    uint32_t raw; // Raw 32-bit instruction
@@ -37,6 +39,11 @@ typedef union {
       uint32_t imm_high : 7;
    } s_type;
 
+   struct {
+      uint32_t opcode : 7;
+      uint32_t rd : 5;
+      uint32_t imm : 20;
+   } u_type;
 } rv32_instruction_t;
 
 typedef enum RV32OPCODES {
@@ -45,13 +52,8 @@ typedef enum RV32OPCODES {
 } rv32opcodes_t;
 
 
-constexpr uint32_t program[] = {
-   // As minimal RISC-V assembler example
-   0x00200093, // addi x1 x0 2
-   0x00300113, // addi x2 x0 3
-   0x002081b3, // add x3 x1 x2
-};
-constexpr uint32_t program_size = sizeof(program) / sizeof(program[0]);
+constexpr uint32_t memory_size = 1024 * 1024; // 1 MiB
+static uint8_t *memory;
 
 uint32_t pc = 0;
 constexpr uint8_t num_registers = 32;
@@ -66,13 +68,44 @@ static inline int32_t sign_extend(uint32_t val, int bits) {
    return (int32_t)((val^m) - m);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+   int ret = 0;
+
+   if (argc < 2) {
+      fprintf(stdout, "Usage: %s <binary_file>\n", argv[0]);
+      ret = 0;
+      goto file_not_specified;
+   }
+
+   memory = malloc(memory_size);
+   if (memory == nullptr) {
+      fprintf(stderr, "Failed to initialize memory\n");
+      ret = -1;
+      goto err_file_not_opened;
+   }
+
+   FILE *file = fopen(argv[1], "rb");
+   if (file == nullptr) {
+      fprintf(stderr, "File not found\n");
+      ret = -1;
+      goto err_file_empty;
+   }
+   // Read contents of the program file into memory
+   size_t program_size = fread(memory, 1, memory_size, file);
+   fclose(file);
+   if (program_size == 0) {
+      fprintf(stderr, "File is empty or read error occurred\n");
+      ret = -1;
+      goto err_file_empty;
+   }
+
+   printf("Loaded %zu bytes\n", program_size);
 
    for (;;) {
       rv32_instruction_t instruction;
-      instruction.raw = program[pc >> 2];
+      memcpy(&instruction, &memory[pc], sizeof(instruction));
 
-      printf("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X\n", pc, instruction.raw, instruction.opcode);
+      printf("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", pc, instruction.raw, instruction.opcode, instruction.opcode);
       switch (instruction.opcode) {
          case 0x33: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
             uint16_t funct = (instruction.r_type.funct7 << 3) | instruction.r_type.funct3;
@@ -115,6 +148,24 @@ int main() {
             }
             break;
 
+         case 0x37: // LUI
+            registers[instruction.rd] = (uint32_t)instruction.u_type.imm << 12; // LUI
+            break;
+
+         case 0x73: // ECALL
+            switch (registers[17]) {
+               case 1: printf("%d", (int32_t)registers[10]); break; // print_int
+               case 2: printf("%f", (float)registers[10]); break; // print_float
+               case 4: printf("%s", (char *)&memory[registers[10]]); break; // print_string
+               case 10: goto end; break; // exit
+               case 11: printf("%c", (char)registers[10]); break; // print_char
+               case 34: printf("0x%02X", registers[10]); break; // print_hex
+               case 35: printf("0b%08b", registers[10]); break; // print_bin
+               case 36: printf("%u", registers[10]); break; // print_unsigned
+               case 93: ret = registers[10]; goto end; break; // exit
+            }
+            break;
+
          default:
             printf("Opcode 0x%02X not implemented\n", instruction.opcode);
             break;
@@ -128,9 +179,26 @@ int main() {
       printf("\n");
 
       pc += 4;
-      if ((pc >> 2) >= program_size) {
-         break;
+      if (pc >= program_size) {
+         pc = 0;
       }
    }
+
+end:
+   char *res_fname = "out.res";
+   if (argc > 2)
+      res_fname = argv[2];
+   FILE *res_file = fopen(res_fname, "wb");
+   for (int i = 0; i < num_registers; i++) {
+      fwrite(&registers[i], 4, 1, res_file);
+   }
+   fclose(res_file);
+
+err_file_not_opened:
+err_file_empty:
+   free(memory);
+
+file_not_specified:
+   return ret;
 }
 
