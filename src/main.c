@@ -276,9 +276,7 @@ end:
    }
    else {
       FILE *res_file = fopen(res_fname, "wb");
-      for (int i = 0; i < num_registers; i++) {
-         fwrite(&registers[i], 4, 1, res_file);
-      }
+      fwrite(registers, 4, num_registers, res_file);
       fclose(res_file);
    }
 
