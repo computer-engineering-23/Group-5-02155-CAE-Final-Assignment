@@ -186,6 +186,7 @@ int main(int argc, char *argv[]) {
       DEBUG_PRINT("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", pc, instruction.raw, instruction.opcode, instruction.opcode);
       switch (instruction.opcode) {
          case 0x33: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
+         {
             uint16_t funct = (instruction.r_type.funct7 << 3) | instruction.r_type.funct3;
             switch (funct) {
                case (0x00<<3)|0x00: registers[instruction.rd] = registers[instruction.r_type.rs1] + registers[instruction.r_type.rs2]; break; // ADD
@@ -201,8 +202,10 @@ int main(int argc, char *argv[]) {
             }
 
             break;
+         }
 
          case 0x13: // ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
+         {
             int32_t imm = sign_extend(instruction.i_type.imm, 12);
             switch (instruction.i_type.funct3) {
                case 0x00: registers[instruction.rd] = registers[instruction.i_type.rs1] + imm; break; // ADDI
@@ -225,12 +228,16 @@ int main(int argc, char *argv[]) {
                case 0x03: registers[instruction.rd] = (registers[instruction.i_type.rs1] < (uint32_t)imm) ? 1 : 0; break; // SLTIU
             }
             break;
+         }
 
          case 0x37: // LUI
+         {
             registers[instruction.rd] = (uint32_t)instruction.u_type.imm << 12; // LUI
             break;
+         }
 
          case 0x73: // ECALL
+         {
             switch (registers[a7]) {
                case 1: fprintf(stdout, "%d", (int32_t)registers[a0]); break; // print_int
                case 2: fprintf(stdout, "%f", (float)registers[a0]); break; // print_float
@@ -243,10 +250,13 @@ int main(int argc, char *argv[]) {
                case 93: ret = registers[a0]; goto end; break; // exit
             }
             break;
+         }
 
          default:
+         {
             fprintf(stdout, "Opcode 0x%02X not implemented\n", instruction.opcode);
             break;
+         }
       }
 
       registers[zero] = 0;
