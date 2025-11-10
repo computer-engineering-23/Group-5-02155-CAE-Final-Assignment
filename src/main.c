@@ -3,6 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef DEBUG
+   #define DEBUG_PRINT(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s() - " fmt, __FILE__, __LINE__, __FUNCTION__, ##args)
+#elif defined DEBUG_SIMPLE
+   #define DEBUG_PRINT(fmt, args...) fprintf(stderr, fmt, ##args)
+#else
+   #define DEBUG_PRINT(fmt, args...) /* Don't do anything on release builds */
+#endif /* ifdef  DEBUG */
+
+
+
 typedef union {
    uint32_t raw; // Raw 32-bit instruction
 
@@ -99,13 +109,14 @@ int main(int argc, char *argv[]) {
       goto err_file_empty;
    }
 
-   printf("Loaded %zu bytes\n", program_size);
+   DEBUG_PRINT("Loaded %zu bytes\n", program_size);
 
    for (;;) {
       rv32_instruction_t instruction;
       memcpy(&instruction, &memory[pc], sizeof(instruction));
+      //rv32_instruction_t instruction = memory[pc];
 
-      printf("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", pc, instruction.raw, instruction.opcode, instruction.opcode);
+      DEBUG_PRINT("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", pc, instruction.raw, instruction.opcode, instruction.opcode);
       switch (instruction.opcode) {
          case 0x33: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
             uint16_t funct = (instruction.r_type.funct7 << 3) | instruction.r_type.funct3;
@@ -154,29 +165,29 @@ int main(int argc, char *argv[]) {
 
          case 0x73: // ECALL
             switch (registers[17]) {
-               case 1: printf("%d", (int32_t)registers[10]); break; // print_int
-               case 2: printf("%f", (float)registers[10]); break; // print_float
-               case 4: printf("%s", (char *)&memory[registers[10]]); break; // print_string
+               case 1: fprintf(stdout, "%d", (int32_t)registers[10]); break; // print_int
+               case 2: fprintf(stdout, "%f", (float)registers[10]); break; // print_float
+               case 4: fprintf(stdout, "%s", (char *)&memory[registers[10]]); break; // print_string
                case 10: goto end; break; // exit
-               case 11: printf("%c", (char)registers[10]); break; // print_char
-               case 34: printf("0x%02X", registers[10]); break; // print_hex
-               case 35: printf("0b%08b", registers[10]); break; // print_bin
-               case 36: printf("%u", registers[10]); break; // print_unsigned
+               case 11: fprintf(stdout, "%c", (char)registers[10]); break; // print_char
+               case 34: fprintf(stdout, "0x%02X", registers[10]); break; // print_hex
+               case 35: fprintf(stdout, "0b%08b", registers[10]); break; // print_bin
+               case 36: fprintf(stdout, "%u", registers[10]); break; // print_unsigned
                case 93: ret = registers[10]; goto end; break; // exit
             }
             break;
 
          default:
-            printf("Opcode 0x%02X not implemented\n", instruction.opcode);
+            fprintf(stdout, "Opcode 0x%02X not implemented\n", instruction.opcode);
             break;
       }
 
       registers[0] = 0;
 
       for (int i = 0; i < num_registers; i++) {
-         printf("0x%08X ", registers[i]);
+         DEBUG_PRINT("0x%08X ", registers[i]);
       }
-      printf("\n");
+      DEBUG_PRINT("\n");
 
       pc += 4;
       if (pc >= program_size) {
@@ -185,14 +196,24 @@ int main(int argc, char *argv[]) {
    }
 
 end:
-   char *res_fname = "out.res";
+   char *res_fname = NULL;
    if (argc > 2)
       res_fname = argv[2];
-   FILE *res_file = fopen(res_fname, "wb");
-   for (int i = 0; i < num_registers; i++) {
-      fwrite(&registers[i], 4, 1, res_file);
+
+   // Write output to file if file is specified, else write to stdout
+   if (res_fname == NULL) {
+      for (int i = 0; i < num_registers; i++) {
+         fprintf(stdout, "%02X", registers[i]);
+      }
+      fprintf(stdout, "\n");
    }
-   fclose(res_file);
+   else {
+      FILE *res_file = fopen(res_fname, "wb");
+      for (int i = 0; i < num_registers; i++) {
+         fwrite(&registers[i], 4, 1, res_file);
+      }
+      fclose(res_file);
+   }
 
 err_file_not_opened:
 err_file_empty:
