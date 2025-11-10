@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
    int ret = 0;
 
    if (argc < 2) {
-      fprintf(stdout, "Usage: %s <binary_file>\n", argv[0]);
+      fprintf(stdout, "Usage: %s <binary_file> [output_file]\n", argv[0]);
       ret = 0;
       goto file_not_specified;
    }
