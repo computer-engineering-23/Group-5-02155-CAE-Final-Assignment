@@ -72,9 +72,8 @@ else
 	CFLAGS  += -O3 -DNDEBUG
 	CFLAGS  += -ffunction-sections -fdata-sections
 	CFLAGS  += -flto
-	CFLAGS  += -finline-small-functions
-	CFLAGS  += -fipa-sra -fmerge-all-constants
-	CFLAGS  += -freorder-blocks -fstrict-aliasing
+	CFLAGS  += -fmerge-all-constants
+	CFLAGS  += -fstrict-aliasing
 	LDFLAGS += -flto -Wl,--gc-sections
 endif
 
