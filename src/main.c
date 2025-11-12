@@ -261,6 +261,31 @@ int main(int argc, char *argv[]) {
             break;
          }
 
+         case 0x63: // BEQ, BNE, BLT, BGE, BLTU, BGEU
+         {
+            uint32_t imm = ((instruction.b_type.imm_high & 0x40) << 6)  // bit    6 -> imm[12]
+                         | ((instruction.b_type.imm_low & 0x01) << 11)  // bit    0 -> imm[11]
+                         | ((instruction.b_type.imm_high & 0x3F) << 5)  // bits 5:0 -> imm[10:5]
+                         | ((instruction.b_type.imm_low & 0x1E));       // bits 4:1 -> imm[4:1] 
+            int32_t offset = sign_extend(imm, 13);
+
+            bool branch_taken = false;
+            switch (instruction.b_type.funct3) {
+               case 0x00: branch_taken = (registers[instruction.b_type.rs1] == registers[instruction.b_type.rs2]); break; // BEQ
+               case 0x01: branch_taken = (registers[instruction.b_type.rs1] != registers[instruction.b_type.rs2]); break; // BNE
+               case 0x04: branch_taken = ((int32_t)registers[instruction.b_type.rs1] < (int32_t)registers[instruction.b_type.rs2]); break; // BLT
+               case 0x05: branch_taken = ((int32_t)registers[instruction.b_type.rs1] >= (int32_t)registers[instruction.b_type.rs2]); break; // BGE
+               case 0x06: branch_taken = (registers[instruction.b_type.rs1] < registers[instruction.b_type.rs2]); break; // BLTU
+               case 0x07: branch_taken = (registers[instruction.b_type.rs1] >= registers[instruction.b_type.rs2]); break; // BGEU
+            }
+
+            if (branch_taken) {
+               pc += offset - 4;
+            } 
+
+            break;
+         }
+
          default:
          {
             fprintf(stdout, "Opcode 0x%02X not implemented\n", instruction.opcode);
