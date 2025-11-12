@@ -5,10 +5,10 @@
 
 #ifdef DEBUG
    #define DEBUG_PRINT(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s() - " fmt, __FILE__, __LINE__, __FUNCTION__, ##args)
-#elif defined DEBUG_SIMPLE
-   #define DEBUG_PRINT(fmt, args...) fprintf(stderr, fmt, ##args)
+   #define DEBUG_PRINT_SIMPLE(fmt, args...) fprintf(stderr, fmt, ##args)
 #else
    #define DEBUG_PRINT(fmt, args...) /* Don't do anything on release builds */
+   #define DEBUG_PRINT_SIMPLE(fmt, args...) /* Don't do anything on release builds */
 #endif /* ifdef  DEBUG */
 
 enum RV32_REGISTERS {
@@ -190,7 +190,6 @@ int main(int argc, char *argv[]) {
    for (;;) {
       rv32_instruction_t instruction;
       memcpy(&instruction, &memory[pc], sizeof(instruction));
-      //rv32_instruction_t instruction = memory[pc];
 
       DEBUG_PRINT("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", pc, instruction.raw, instruction.opcode, instruction.opcode);
       switch (instruction.opcode) {
@@ -296,9 +295,9 @@ int main(int argc, char *argv[]) {
       registers[zero] = 0;
 
       for (int i = 0; i < num_registers; i++) {
-         DEBUG_PRINT("0x%08X ", registers[i]);
+         DEBUG_PRINT_SIMPLE("0x%08X ", registers[i]);
       }
-      DEBUG_PRINT("\n");
+      DEBUG_PRINT_SIMPLE("\n");
 
       pc += 4;
       if (pc >= program_size) {
