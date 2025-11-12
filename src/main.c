@@ -291,6 +291,44 @@ int main(int argc, char *argv[]) {
             break;
          }
 
+         case 0x3: // LB, LH, LW, LBU, LHU
+         {
+            int32_t imm = sign_extend(instruction.i_type.imm, 12);
+            uint32_t addr = registers[instruction.i_type.rs1] + imm;
+            
+            switch (instruction.i_type.funct3) {
+               case 0x0: { // LB
+                  int8_t byte;
+                  memcpy(&byte, &memory[addr], 1);
+                  registers[instruction.rd] = (int32_t)byte;  // Sign-extend
+                  break;
+               }
+               case 0x1: { // LH
+                  int16_t half;
+                  memcpy(&half, &memory[addr], 2);
+                  registers[instruction.rd] = (int32_t)half;  // Sign-extend
+                  break;
+               }
+               case 0x2: { // LW - load word
+                  memcpy(&registers[instruction.rd], &memory[addr], 4);
+                  break;
+               }
+               case 0x4: { // LBU - load byte unsigned
+                  uint8_t byte;
+                  memcpy(&byte, &memory[addr], 1);
+                  registers[instruction.rd] = (uint32_t)byte;  // Zero-extend
+                  break;
+               }
+               case 0x5: { // LHU - load halfword unsigned
+                  uint16_t half;
+                  memcpy(&half, &memory[addr], 2);
+                  registers[instruction.rd] = (uint32_t)half;  // Zero-extend
+                  break;
+               }
+            }
+            break;
+         }
+         
          default:
          {
             fprintf(stdout, "Opcode 0x%02X not implemented\n", instruction.opcode);
