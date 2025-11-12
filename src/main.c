@@ -244,6 +244,12 @@ int main(int argc, char *argv[]) {
             break;
          }
 
+         case 0x17: // AUIPC
+         {
+            registers[instruction.u_type.rd] = pc + (instruction.u_type.imm << 12);
+            break;
+         }
+
          case 0x73: // ECALL
          {
             switch (registers[a7]) {
