@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
          case 0x23: // SB, SH, SW
          {
             int32_t imm = sign_extend(instruction.s_type.imm_high << 5 | instruction.s_type.imm_low, 12);
-            uint32_t addr = instruction.s_type.rs1 + imm;
+            uint32_t addr = registers[instruction.s_type.rs1] + imm;
             switch (instruction.s_type.funct3) {
                case 0x0: {
                   memcpy(&memory[addr], (uint8_t*)&registers[instruction.s_type.rs2], 1);
