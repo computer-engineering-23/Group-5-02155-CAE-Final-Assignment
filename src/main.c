@@ -130,6 +130,13 @@ typedef union {
       uint32_t rd : 5;
       uint32_t imm : 20;
    } u_type;
+
+   struct {
+      uint32_t opcode : 7;
+      uint32_t rd : 5;
+      uint32_t imm : 20;
+   } j_type;
+
 } rv32_instruction_t;
 
 typedef enum RV32OPCODES {
@@ -347,6 +354,40 @@ int main(int argc, char *argv[]) {
                   break;
                }
             }
+            break;
+         }
+
+         case 0x6F: // JAL
+         {
+            // instruction.j_type.imm is already right shifted by 12
+            //    instruction[31]    -> imm[20]
+            //    instruction[30:21] -> imm[10:1]
+            //    instruction[20]    -> imm[11]
+            //    instruction[19:12] -> imm[19:12]
+            int32_t imm = sign_extend(
+                  ((instruction.j_type.imm & 0x80000) << 1)  // Bit 20
+                | ((instruction.j_type.imm & 0x7FE00) >> 8)  // Bit 10:1
+                | ((instruction.j_type.imm & 0x00100) << 3)  // Bit 11
+                | ((instruction.j_type.imm & 0x000FF) << 12)  // Bit 19:12
+                  ,
+            21);
+
+            registers[instruction.rd] = pc+4;
+            pc += imm-4;
+
+            break;
+         }
+
+         case 0x67: // JALR
+         {
+            if (instruction.i_type.funct3 != 0x0) break;
+
+            int32_t imm = sign_extend(instruction.i_type.imm, 12);
+            uint32_t target = (registers[instruction.i_type.rs1] + imm) & ~1;
+
+            registers[instruction.rd] = pc + 4;
+            pc = target - 4;
+
             break;
          }
          
