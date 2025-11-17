@@ -270,6 +270,9 @@ int main(int argc, char *argv[]) {
                case 36: fprintf(stdout, "%u", registers[a0]); break; // print_unsigned
                case 93: ret = registers[a0]; goto end; break; // exit
             }
+            
+            if (registers[a0] == 10) goto end; // exit
+
             break;
          }
 
@@ -406,9 +409,10 @@ int main(int argc, char *argv[]) {
       DEBUG_PRINT_SIMPLE("\n");
 
       pc += 4;
-      if (pc >= program_size) {
-         pc = 0;
-      }
+      // If pc >= program_size, then undefined behavior according to spec
+      //if (pc >= program_size) {
+      //   pc = 0;
+      //}
    }
 
 end:

@@ -6,6 +6,7 @@
 PROG        = Final_assignment
 SRC_DIR     = src
 BUILD_DIR   = build
+TEST_DIR    = tests
 HEADER_DIRS = include src $(shell find ${SRC_DIR} -type d)
 
 # ====================
@@ -28,6 +29,12 @@ endif
 SRC         = $(wildcard ${SRC_DIR}/*.c)
 OBJ         = $(patsubst ${SRC_DIR}/%.c, ${BUILD_DIR}/%.o, ${SRC})
 EXECUTABLE  = ${BUILD_DIR}/${PROG}
+
+# ====================
+# Test Files
+# ====================
+TEST_BINS   = $(shell find ${TEST_DIR} -name '*.bin' 2>/dev/null)
+TEST_RESULTS = $(patsubst ${TEST_DIR}/%.bin, ${BUILD_DIR}/${TEST_DIR}/%.res, ${TEST_BINS})
 
 # ====================
 # Toolchain
@@ -97,7 +104,7 @@ EXECUTABLE := ${EXECUTABLE}${EXE_EXT}
 # ====================
 # Build Targets
 # ====================
-.PHONY: all clean run debug release size
+.PHONY: all clean run debug release size test
 
 debug:
 	$(MAKE) DEBUG=1 all size
@@ -124,6 +131,33 @@ size: ${EXECUTABLE}
 
 run: ${EXECUTABLE}
 	./${EXECUTABLE}
+
+${BUILD_DIR}/${TEST_DIR}/%.res: ${TEST_DIR}/%.bin ${EXECUTABLE}
+	@${MKDIR} $(dir $@)
+	@echo "Running test: $<"
+	@${EXECUTABLE} $< $@
+
+test: ${EXECUTABLE} ${TEST_RESULTS}
+	@echo
+	@echo "===================="
+	@echo "Comparing Results"
+	@echo "===================="
+	@for task in ${TEST_DIR}/*/; do \
+		taskname=$$(basename $$task); \
+		echo "Task: $$taskname"; \
+		for expected in ${TEST_DIR}/$$taskname/*.res; do \
+			if [ -f "$$expected" ]; then \
+				basename=$$(basename $$expected); \
+				actual=${BUILD_DIR}/${TEST_DIR}/$$taskname/$$basename; \
+				if diff -q $$expected $$actual > /dev/null 2>&1; then \
+					echo "  ✓ $$basename"; \
+				else \
+					echo "  ✗ $$basename - MISMATCH"; \
+				fi; \
+			fi; \
+		done; \
+	done
+
 
 clean:
 	${RMDIR} build
