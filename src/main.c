@@ -89,8 +89,16 @@ typedef union {
 } rv32_instruction_t;
 
 typedef enum RV32OPCODES {
-   R = 0b0110011, // 0x33
-   I = 0b0010011, // 0x13
+   OP_LOAD   = 0b0000011, // 0x03 - LB, LH, LW, LBU, LHU
+   OP_IMM    = 0b0010011, // 0x13 - ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
+   OP_AUIPC  = 0b0010111, // 0x17 - AUIPC
+   OP_STORE  = 0b0100011, // 0x23 - SB, SH, SW
+   OP_REG    = 0b0110011, // 0x33 - ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
+   OP_LUI    = 0b0110111, // 0x37 - LUI
+   OP_BRANCH = 0b1100011, // 0x63 - BEQ, BNE, BLT, BGE, BLTU, BGEU
+   OP_JALR   = 0b1100111, // 0x67 - JALR
+   OP_JAL    = 0b1101111, // 0x6F - JAL
+   OP_SYSTEM = 0b1110011, // 0x73 - ECALL, EBREAK
 } rv32opcodes_t;
 
 
@@ -149,7 +157,7 @@ int main(int argc, char *argv[]) {
 
       DEBUG_PRINT("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", pc, instruction.raw, instruction.opcode, instruction.opcode);
       switch (instruction.opcode) {
-         case 0x33: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
+         case OP_REG: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
          {
             uint16_t funct = (instruction.r_type.funct7 << 3) | instruction.r_type.funct3;
             switch (funct) {
@@ -168,7 +176,7 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x13: // ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
+         case OP_IMM: // ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
          {
             int32_t imm = sign_extend(instruction.i_type.imm, 12);
             switch (instruction.i_type.funct3) {
@@ -194,19 +202,19 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x37: // LUI
+         case OP_LUI: // LUI
          {
             registers[instruction.rd] = (uint32_t)instruction.u_type.imm << 12; // LUI
             break;
          }
 
-         case 0x17: // AUIPC
+         case OP_AUIPC: // AUIPC
          {
             registers[instruction.u_type.rd] = pc + (instruction.u_type.imm << 12);
             break;
          }
 
-         case 0x73: // ECALL
+         case OP_SYSTEM: // ECALL
          {
             switch (registers[a7]) {
                case 1: fprintf(stdout, "%d", (int32_t)registers[a0]); break; // print_int
@@ -225,7 +233,7 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x63: // BEQ, BNE, BLT, BGE, BLTU, BGEU
+         case OP_BRANCH: // BEQ, BNE, BLT, BGE, BLTU, BGEU
          {
             uint32_t imm = ((instruction.b_type.imm_high & 0x40) << 6)  // bit    6 -> imm[12]
                          | ((instruction.b_type.imm_low & 0x01) << 11)  // bit    0 -> imm[11]
@@ -250,7 +258,7 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x3: // LB, LH, LW, LBU, LHU
+         case OP_LOAD: // LB, LH, LW, LBU, LHU
          {
             int32_t imm = sign_extend(instruction.i_type.imm, 12);
             uint32_t addr = registers[instruction.i_type.rs1] + imm;
@@ -288,7 +296,7 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x23: // SB, SH, SW
+         case OP_STORE: // SB, SH, SW
          {
             int32_t imm = sign_extend(instruction.s_type.imm_high << 5 | instruction.s_type.imm_low, 12);
             uint32_t addr = registers[instruction.s_type.rs1] + imm;
@@ -309,7 +317,7 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x6F: // JAL
+         case OP_JAL: // JAL
          {
             // instruction.j_type.imm is already right shifted by 12
             //    instruction[31]    -> imm[20]
@@ -330,7 +338,7 @@ int main(int argc, char *argv[]) {
             break;
          }
 
-         case 0x67: // JALR
+         case OP_JALR: // JALR
          {
             if (instruction.i_type.funct3 != 0x0) break;
 
