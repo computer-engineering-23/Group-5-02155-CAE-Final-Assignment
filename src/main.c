@@ -101,6 +101,57 @@ typedef enum RV32OPCODES {
    OP_SYSTEM = 0b1110011, // 0x73 - ECALL, EBREAK
 } rv32opcodes_t;
 
+// R-type instructions (OP_REG) - Combined funct7 and funct3
+enum rv32_r_type_instructions {
+   ADD  = (0x00 << 3) | 0x0,
+   SUB  = (0x20 << 3) | 0x0,
+   XOR  = (0x00 << 3) | 0x4,
+   OR   = (0x00 << 3) | 0x6,
+   AND  = (0x00 << 3) | 0x7,
+   SLL  = (0x00 << 3) | 0x1,
+   SRL  = (0x00 << 3) | 0x5,
+   SRA  = (0x20 << 3) | 0x5,
+   SLT  = (0x00 << 3) | 0x2,
+   SLTU = (0x00 << 3) | 0x3,
+};
+
+// I-type immediate instructions (OP_IMM) - funct3 values
+enum rv32_i_type_instructions {
+   ADDI  = 0x0,
+   SLLI  = 0x1,
+   SLTI  = 0x2,
+   SLTIU = 0x3,
+   XORI  = 0x4,
+   SRLI_SRAI = 0x5, // Distinguished by bit 30 of immediate
+   ORI   = 0x6,
+   ANDI  = 0x7,
+};
+
+// Load instructions (OP_LOAD) - funct3 values
+enum rv32_load_instructions {
+   LB  = 0x0,
+   LH  = 0x1,
+   LW  = 0x2,
+   LBU = 0x4,
+   LHU = 0x5,
+};
+
+// Store instructions (OP_STORE) - funct3 values
+enum rv32_store_instructions {
+   SB = 0x0,
+   SH = 0x1,
+   SW = 0x2,
+};
+
+// Branch instructions (OP_BRANCH) - funct3 values
+enum rv32_branch_instructions {
+   BEQ  = 0x0,
+   BNE  = 0x1,
+   BLT  = 0x4,
+   BGE  = 0x5,
+   BLTU = 0x6,
+   BGEU = 0x7,
+};
 
 constexpr uint32_t memory_size = 1024 * 1024; // 1 MiB
 static uint8_t *memory;
@@ -161,16 +212,16 @@ int main(int argc, char *argv[]) {
          {
             uint16_t funct = (instruction.r_type.funct7 << 3) | instruction.r_type.funct3;
             switch (funct) {
-               case (0x00<<3)|0x00: registers[instruction.rd] = registers[instruction.r_type.rs1] + registers[instruction.r_type.rs2]; break; // ADD
-               case (0x20<<3)|0x00: registers[instruction.rd] = registers[instruction.r_type.rs1] - registers[instruction.r_type.rs2]; break; // SUB
-               case (0x00<<3)|0x04: registers[instruction.rd] = registers[instruction.r_type.rs1] ^ registers[instruction.r_type.rs2]; break; // XOR
-               case (0x00<<3)|0x06: registers[instruction.rd] = registers[instruction.r_type.rs1] | registers[instruction.r_type.rs2]; break; // OR
-               case (0x00<<3)|0x07: registers[instruction.rd] = registers[instruction.r_type.rs1] & registers[instruction.r_type.rs2]; break; // AND
-               case (0x00<<3)|0x01: registers[instruction.rd] = registers[instruction.r_type.rs1] << (registers[instruction.r_type.rs2] & 0x1F); break; // SLL
-               case (0x00<<3)|0x05: registers[instruction.rd] = registers[instruction.r_type.rs1] >> (registers[instruction.r_type.rs2] & 0x1F); break; // SRL
-               case (0x20<<3)|0x05: registers[instruction.rd] = (int32_t)registers[instruction.r_type.rs1] >> (registers[instruction.r_type.rs2] & 0x1F); break; // SRA
-               case (0x00<<3)|0x02: registers[instruction.rd] = ((int32_t)registers[instruction.r_type.rs1] < (int32_t)registers[instruction.r_type.rs2]) ? 1 : 0; break; // SLT
-               case (0x00<<3)|0x03: registers[instruction.rd] = (registers[instruction.r_type.rs1] < registers[instruction.r_type.rs2]) ? 1 : 0; break; // SLTU
+               case ADD:  registers[instruction.rd] = registers[instruction.r_type.rs1] + registers[instruction.r_type.rs2]; break;
+               case SUB:  registers[instruction.rd] = registers[instruction.r_type.rs1] - registers[instruction.r_type.rs2]; break;
+               case XOR:  registers[instruction.rd] = registers[instruction.r_type.rs1] ^ registers[instruction.r_type.rs2]; break;
+               case OR:   registers[instruction.rd] = registers[instruction.r_type.rs1] | registers[instruction.r_type.rs2]; break;
+               case AND:  registers[instruction.rd] = registers[instruction.r_type.rs1] & registers[instruction.r_type.rs2]; break;
+               case SLL:  registers[instruction.rd] = registers[instruction.r_type.rs1] << (registers[instruction.r_type.rs2] & 0x1F); break;
+               case SRL:  registers[instruction.rd] = registers[instruction.r_type.rs1] >> (registers[instruction.r_type.rs2] & 0x1F); break;
+               case SRA:  registers[instruction.rd] = (int32_t)registers[instruction.r_type.rs1] >> (registers[instruction.r_type.rs2] & 0x1F); break;
+               case SLT:  registers[instruction.rd] = ((int32_t)registers[instruction.r_type.rs1] < (int32_t)registers[instruction.r_type.rs2]) ? 1 : 0; break;
+               case SLTU: registers[instruction.rd] = (registers[instruction.r_type.rs1] < registers[instruction.r_type.rs2]) ? 1 : 0; break;
             }
 
             break;
@@ -180,12 +231,12 @@ int main(int argc, char *argv[]) {
          {
             int32_t imm = sign_extend(instruction.i_type.imm, 12);
             switch (instruction.i_type.funct3) {
-               case 0x00: registers[instruction.rd] = registers[instruction.i_type.rs1] + imm; break; // ADDI
-               case 0x04: registers[instruction.rd] = registers[instruction.i_type.rs1] ^ imm; break; // XORI
-               case 0x06: registers[instruction.rd] = registers[instruction.i_type.rs1] | imm; break; // ORI
-               case 0x07: registers[instruction.rd] = registers[instruction.i_type.rs1] & imm; break; // ANDI
-               case 0x01: registers[instruction.rd] = registers[instruction.i_type.rs1] << (imm & 0x1F); break; // SSLI
-               case 0x05: {
+               case ADDI:  registers[instruction.rd] = registers[instruction.i_type.rs1] + imm; break;
+               case XORI:  registers[instruction.rd] = registers[instruction.i_type.rs1] ^ imm; break;
+               case ORI:   registers[instruction.rd] = registers[instruction.i_type.rs1] | imm; break;
+               case ANDI:  registers[instruction.rd] = registers[instruction.i_type.rs1] & imm; break;
+               case SLLI:  registers[instruction.rd] = registers[instruction.i_type.rs1] << (imm & 0x1F); break;
+               case SRLI_SRAI: {
                   uint8_t shift_amount = instruction.i_type.imm & 0x1F;  // How many positions to shift
                   uint8_t mode = get_bits(instruction.i_type.imm, 11, 5);
                   if (mode == 0x00) { // SRLI
@@ -196,8 +247,8 @@ int main(int argc, char *argv[]) {
                   }
                   break;
                }
-               case 0x02: registers[instruction.rd] = ((int32_t)registers[instruction.i_type.rs1] < imm) ? 1 : 0; break; // SLTI
-               case 0x03: registers[instruction.rd] = (registers[instruction.i_type.rs1] < (uint32_t)imm) ? 1 : 0; break; // SLTIU
+               case SLTI:  registers[instruction.rd] = ((int32_t)registers[instruction.i_type.rs1] < imm) ? 1 : 0; break;
+               case SLTIU: registers[instruction.rd] = (registers[instruction.i_type.rs1] < (uint32_t)imm) ? 1 : 0; break;
             }
             break;
          }
@@ -243,12 +294,12 @@ int main(int argc, char *argv[]) {
 
             bool branch_taken = false;
             switch (instruction.b_type.funct3) {
-               case 0x00: branch_taken = (registers[instruction.b_type.rs1] == registers[instruction.b_type.rs2]); break; // BEQ
-               case 0x01: branch_taken = (registers[instruction.b_type.rs1] != registers[instruction.b_type.rs2]); break; // BNE
-               case 0x04: branch_taken = ((int32_t)registers[instruction.b_type.rs1] < (int32_t)registers[instruction.b_type.rs2]); break; // BLT
-               case 0x05: branch_taken = ((int32_t)registers[instruction.b_type.rs1] >= (int32_t)registers[instruction.b_type.rs2]); break; // BGE
-               case 0x06: branch_taken = (registers[instruction.b_type.rs1] < registers[instruction.b_type.rs2]); break; // BLTU
-               case 0x07: branch_taken = (registers[instruction.b_type.rs1] >= registers[instruction.b_type.rs2]); break; // BGEU
+               case BEQ:  branch_taken = (registers[instruction.b_type.rs1] == registers[instruction.b_type.rs2]); break;
+               case BNE:  branch_taken = (registers[instruction.b_type.rs1] != registers[instruction.b_type.rs2]); break;
+               case BLT:  branch_taken = ((int32_t)registers[instruction.b_type.rs1] < (int32_t)registers[instruction.b_type.rs2]); break;
+               case BGE:  branch_taken = ((int32_t)registers[instruction.b_type.rs1] >= (int32_t)registers[instruction.b_type.rs2]); break;
+               case BLTU: branch_taken = (registers[instruction.b_type.rs1] < registers[instruction.b_type.rs2]); break;
+               case BGEU: branch_taken = (registers[instruction.b_type.rs1] >= registers[instruction.b_type.rs2]); break;
             }
 
             if (branch_taken) {
@@ -264,29 +315,29 @@ int main(int argc, char *argv[]) {
             uint32_t addr = registers[instruction.i_type.rs1] + imm;
             
             switch (instruction.i_type.funct3) {
-               case 0x0: { // LB
+               case LB: {
                   int8_t byte;
                   memcpy(&byte, &memory[addr], 1);
                   registers[instruction.rd] = (int32_t)byte;  // Sign-extend
                   break;
                }
-               case 0x1: { // LH
+               case LH: {
                   int16_t half;
                   memcpy(&half, &memory[addr], 2);
                   registers[instruction.rd] = (int32_t)half;  // Sign-extend
                   break;
                }
-               case 0x2: { // LW - load word
+               case LW: {
                   memcpy(&registers[instruction.rd], &memory[addr], 4);
                   break;
                }
-               case 0x4: { // LBU - load byte unsigned
+               case LBU: {
                   uint8_t byte;
                   memcpy(&byte, &memory[addr], 1);
                   registers[instruction.rd] = (uint32_t)byte;  // Zero-extend
                   break;
                }
-               case 0x5: { // LHU - load halfword unsigned
+               case LHU: {
                   uint16_t half;
                   memcpy(&half, &memory[addr], 2);
                   registers[instruction.rd] = (uint32_t)half;  // Zero-extend
@@ -301,15 +352,15 @@ int main(int argc, char *argv[]) {
             int32_t imm = sign_extend(instruction.s_type.imm_high << 5 | instruction.s_type.imm_low, 12);
             uint32_t addr = registers[instruction.s_type.rs1] + imm;
             switch (instruction.s_type.funct3) {
-               case 0x0: {
+               case SB: {
                   memcpy(&memory[addr], (uint8_t*)&registers[instruction.s_type.rs2], 1);
                   break;
                }
-               case 0x1: {
+               case SH: {
                   memcpy(&memory[addr], (uint16_t*)&registers[instruction.s_type.rs2], 2);
                   break;
                }
-               case 0x2: {
+               case SW: {
                   memcpy(&memory[addr], (uint32_t*)&registers[instruction.s_type.rs2], 4);
                   break;
                }
