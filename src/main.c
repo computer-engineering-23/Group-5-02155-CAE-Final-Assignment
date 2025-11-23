@@ -39,7 +39,7 @@ typedef union {
       uint32_t __unused : 20;
    };
 
-   struct {
+   struct rv32_instruction_r_type {
       uint32_t opcode : 7;
       uint32_t rd : 5;
       uint32_t funct3 : 3;
@@ -48,7 +48,7 @@ typedef union {
       uint32_t funct7 : 7;
    } r_type;
 
-   struct {
+   struct rv32_instruction_i_type {
       uint32_t opcode : 7;
       uint32_t rd : 5;
       uint32_t funct3 : 3;
@@ -56,7 +56,7 @@ typedef union {
       uint32_t imm : 12;
    } i_type;
 
-   struct {
+   struct rv32_instruction_s_type {
       uint32_t opcode : 7;
       uint32_t imm_low : 5;
       uint32_t funct3 : 3;
@@ -65,7 +65,7 @@ typedef union {
       uint32_t imm_high : 7;
    } s_type;
 
-   struct {
+   struct rv32_instruction_b_type {
       uint32_t opcode : 7;
       uint32_t imm_low : 5;
       uint32_t funct3 : 3;
@@ -74,13 +74,13 @@ typedef union {
       uint32_t imm_high : 7;
    } b_type;
 
-   struct {
+   struct rv32_instruction_u_type {
       uint32_t opcode : 7;
       uint32_t rd : 5;
       uint32_t imm : 20;
    } u_type;
 
-   struct {
+   struct rv32_instruction_j_type {
       uint32_t opcode : 7;
       uint32_t rd : 5;
       uint32_t imm : 20;
