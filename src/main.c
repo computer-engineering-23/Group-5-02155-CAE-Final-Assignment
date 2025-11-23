@@ -59,6 +59,9 @@ int main(int argc, char *argv[]) {
       memcpy(&instruction, &cpu_state.memory[cpu_state.pc], sizeof(instruction));
 
       DEBUG_PRINT("PC=0x%08X, Instruction=0x%08X, Opcode=0x%02X (0b%07b)\n", cpu_state.pc, instruction.raw, instruction.opcode, instruction.opcode);
+
+      cpu_state.pc += 4;
+
       switch (instruction.opcode) {
          case OP_REG: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
          {
@@ -133,12 +136,6 @@ int main(int argc, char *argv[]) {
          DEBUG_PRINT_SIMPLE("0x%08X ", registers[i]);
       }
       DEBUG_PRINT_SIMPLE("\n");
-
-      cpu_state.pc += 4;
-      // If pc >= program_size, then undefined behavior according to spec
-      //if (pc >= program_size) {
-      //   pc = 0;
-      //}
    }
 
 end:

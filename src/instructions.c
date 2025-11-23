@@ -64,7 +64,7 @@ void execute_branch(rv32_cpu_t *cpu_state, struct rv32_instruction_b_type instru
     }
 
     if (branch_taken) {
-        cpu_state->pc += offset - 4;
+        cpu_state->pc += offset-4;
     }
 }
 
@@ -137,7 +137,7 @@ void execute_jal(rv32_cpu_t *cpu_state, struct rv32_instruction_j_type instructi
             ,
     21);
 
-    cpu_state->registers[instruction.rd] = cpu_state->pc+4;
+    cpu_state->registers[instruction.rd] = cpu_state->pc;
     cpu_state->pc += imm-4;
 }
 
@@ -147,8 +147,8 @@ void execute_jalr(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instruct
     int32_t imm = sign_extend(instruction.imm, 12);
     uint32_t target = (cpu_state->registers[instruction.rs1] + imm) & ~1;
 
-    cpu_state->registers[instruction.rd] = cpu_state->pc + 4;
-    cpu_state->pc = target - 4;
+    cpu_state->registers[instruction.rd] = cpu_state->pc;
+    cpu_state->pc = target;
 }
 
 void execute_lui(rv32_cpu_t *cpu_state, struct rv32_instruction_u_type instruction) { 
@@ -156,7 +156,7 @@ void execute_lui(rv32_cpu_t *cpu_state, struct rv32_instruction_u_type instructi
 }
 
 void execute_auipc(rv32_cpu_t *cpu_state, struct rv32_instruction_u_type instruction) {
-    cpu_state->registers[instruction.rd] = cpu_state->pc + (instruction.imm << 12);
+    cpu_state->registers[instruction.rd] = cpu_state->pc-4 + (instruction.imm << 12);
 }
 
 void execute_system(rv32_cpu_t *cpu_state) {
