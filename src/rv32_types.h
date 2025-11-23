@@ -4,9 +4,11 @@
 
 #include <stdint.h>
 
+constexpr uint32_t memory_size = 1024 * 1024; // 1 MiB
+constexpr uint32_t num_registers = 32;
 typedef struct {
     uint32_t pc;
-    uint32_t registers[32];
+    uint32_t registers[num_registers];
     uint8_t *memory;
     int return_code;
     bool running;

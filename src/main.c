@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "instructions.h"
-#include "utils.h"
 #include "rv32_types.h"
 
 #ifdef DEBUG
@@ -14,13 +13,6 @@
    #define DEBUG_PRINT(fmt, args...) /* Don't do anything on release builds */
    #define DEBUG_PRINT_SIMPLE(fmt, args...) /* Don't do anything on release builds */
 #endif /* ifdef  DEBUG */
-
-constexpr uint32_t memory_size = 1024 * 1024; // 1 MiB
-//static uint8_t *memory;
-
-uint32_t pc = 0;
-constexpr uint8_t num_registers = 32;
-//uint32_t registers[num_registers] = {0};
 
 int main(int argc, char *argv[]) {
    int ret = 0;
