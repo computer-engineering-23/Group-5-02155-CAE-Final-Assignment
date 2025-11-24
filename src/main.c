@@ -63,65 +63,16 @@ int main(int argc, char *argv[]) {
       cpu_state.pc += 4;
 
       switch (instruction.opcode) {
-         case OP_REG: // ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
-         {
-            execute_reg(&cpu_state, instruction.r_type);
-            break;
-         }
-
-         case OP_IMM: // ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
-         {
-            execute_imm(&cpu_state, instruction.i_type);
-            break;
-         }
-
-         case OP_LUI: // LUI
-         {
-            execute_lui(&cpu_state, instruction.u_type);
-            break;
-         }
-
-         case OP_AUIPC: // AUIPC
-         {
-            execute_auipc(&cpu_state, instruction.u_type);
-            break;
-         }
-
-         case OP_SYSTEM: // ECALL
-         {
-            execute_system(&cpu_state);
-            break;
-         }
-
-         case OP_BRANCH: // BEQ, BNE, BLT, BGE, BLTU, BGEU
-         {
-            execute_branch(&cpu_state, instruction.b_type);
-            break;
-         }
-
-         case OP_LOAD: // LB, LH, LW, LBU, LHU
-         {
-            execute_load(&cpu_state, instruction.i_type);
-            break;
-         }
-
-         case OP_STORE: // SB, SH, SW
-         {
-            execute_store(&cpu_state, instruction.s_type);
-            break;
-         }
-
-         case OP_JAL: // JAL
-         {
-            execute_jal(&cpu_state, instruction.j_type);
-            break;
-         }
-
-         case OP_JALR: // JALR
-         {
-            execute_jalr(&cpu_state, instruction.i_type);
-            break;
-         }
+         case OP_REG: execute_reg(&cpu_state, instruction.r_type); break;
+         case OP_IMM: execute_imm(&cpu_state, instruction.i_type); break;
+         case OP_LUI: execute_lui(&cpu_state, instruction.u_type); break;
+         case OP_AUIPC: execute_auipc(&cpu_state, instruction.u_type); break;
+         case OP_SYSTEM: execute_system(&cpu_state); break;
+         case OP_BRANCH: execute_branch(&cpu_state, instruction.b_type); break;
+         case OP_LOAD: execute_load(&cpu_state, instruction.i_type); break;
+         case OP_STORE: execute_store(&cpu_state, instruction.s_type); break;
+         case OP_JAL: execute_jal(&cpu_state, instruction.j_type); break;
+         case OP_JALR: execute_jalr(&cpu_state, instruction.i_type); break;
          
          default:
          {
@@ -133,7 +84,7 @@ int main(int argc, char *argv[]) {
       cpu_state.registers[zero] = 0;
 
       for (int i = 0; i < num_registers; i++) {
-         DEBUG_PRINT_SIMPLE("0x%08X ", registers[i]);
+         DEBUG_PRINT_SIMPLE("0x%08X ", cpu_state.registers[i]);
       }
       DEBUG_PRINT_SIMPLE("\n");
    }

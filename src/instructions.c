@@ -6,6 +6,7 @@
 #include "rv32_types.h"
 #include "instructions.h"
 
+// ADD, SUB, XOR, OR, AND, SLL, SRL, SRA, SLT, SLTU
 void execute_reg(rv32_cpu_t *cpu_state, struct rv32_instruction_r_type instruction) {
     uint16_t funct = (instruction.funct7 << 3) | instruction.funct3;
     switch (funct) {
@@ -22,6 +23,7 @@ void execute_reg(rv32_cpu_t *cpu_state, struct rv32_instruction_r_type instructi
     }
 }
 
+// ADDI, XORI, ORI, ANDI, SLLI, SRLI, SRAI, SLTI, SLTIU
 void execute_imm(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instruction) {
     int32_t imm = sign_extend(instruction.imm, 12);
     switch (instruction.funct3) {
@@ -46,6 +48,7 @@ void execute_imm(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instructi
     }
 }
 
+// BEQ, BNE, BLT, BGE, BLTU, BGEU
 void execute_branch(rv32_cpu_t *cpu_state, struct rv32_instruction_b_type instruction) {
     uint32_t imm = ((instruction.imm_high & 0x40) << 6)  // bit    6 -> imm[12]
                  | ((instruction.imm_low & 0x01) << 11)  // bit    0 -> imm[11]
@@ -68,6 +71,7 @@ void execute_branch(rv32_cpu_t *cpu_state, struct rv32_instruction_b_type instru
     }
 }
 
+// LB, LH, LW, LBU, LHU
 void execute_load(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instruction) {
     int32_t imm = sign_extend(instruction.imm, 12);
     uint32_t addr = cpu_state->registers[instruction.rs1] + imm;
@@ -104,6 +108,7 @@ void execute_load(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instruct
     }
 }
 
+// SB, SH, SW
 void execute_store(rv32_cpu_t *cpu_state, struct rv32_instruction_s_type instruction) {
     int32_t imm = sign_extend(instruction.imm_high << 5 | instruction.imm_low, 12);
     uint32_t addr = cpu_state->registers[instruction.rs1] + imm;
@@ -123,6 +128,7 @@ void execute_store(rv32_cpu_t *cpu_state, struct rv32_instruction_s_type instruc
     }
 }
 
+// JAL
 void execute_jal(rv32_cpu_t *cpu_state, struct rv32_instruction_j_type instruction) {
     // instruction.j_type.imm is already right shifted by 12
     //    instruction[31]    -> imm[20]
@@ -141,6 +147,7 @@ void execute_jal(rv32_cpu_t *cpu_state, struct rv32_instruction_j_type instructi
     cpu_state->pc += imm-4;
 }
 
+// JALR
 void execute_jalr(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instruction) {
     if (instruction.funct3 != 0x0) return;
 
@@ -151,14 +158,17 @@ void execute_jalr(rv32_cpu_t *cpu_state, struct rv32_instruction_i_type instruct
     cpu_state->pc = target;
 }
 
+// LUI
 void execute_lui(rv32_cpu_t *cpu_state, struct rv32_instruction_u_type instruction) { 
     cpu_state->registers[instruction.rd] = (uint32_t)instruction.imm << 12;
 }
 
+// AUIPC
 void execute_auipc(rv32_cpu_t *cpu_state, struct rv32_instruction_u_type instruction) {
     cpu_state->registers[instruction.rd] = cpu_state->pc-4 + (instruction.imm << 12);
 }
 
+// ECALL
 void execute_system(rv32_cpu_t *cpu_state) {
     uint32_t *registers = cpu_state->registers;
 
