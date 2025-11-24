@@ -89,7 +89,6 @@ int main(int argc, char *argv[]) {
       DEBUG_PRINT_SIMPLE("\n");
    }
 
-end:
    char *res_fname = NULL;
    if (argc > 2)
       res_fname = argv[2];
